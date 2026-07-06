@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import ErrorLogs from "../models/Error_Logs.js";
+import { analyzeErrorWithGemini } from "../services/ai.service.js";
+import pool from "../config/db.js";
 
 class LogsController {
   private errorLogs: ErrorLogs;
@@ -22,6 +24,34 @@ class LogsController {
         message: "Error log created successfully",
         data: result,
       });
+
+      console.log("⏳ Khởi chạy phân tích Gemini ngầm cho log ID:", result.id);
+
+      // 2. Gọi hàm ngầm
+      analyzeErrorWithGemini(error_message, stack_trace, "English")
+        .then(async (data) => {
+          console.log("Analyze successfully", data);
+
+          await this.errorLogs.updateErrorLog(
+            result.id,
+            data.ai_status,
+            data.ai_reason,
+            data.ai_suggestion,
+            data.error_fingerprint,
+          );
+        })
+        .catch(async (error) => {
+          console.error("Analyze failed", error.message);
+          const failSql = `
+          UPDATE error_logs 
+          SET ai_status = 'failed' 
+          WHERE id = $1
+        `;
+          await pool.query(failSql, [result.id]);
+          console.log(
+            `📌 Đã cập nhật trạng thái 'failed' cho log ID: ${result.id}`,
+          );
+        });
     } catch (error: unknown) {
       res.status(500).json({
         error: "Internal server error",
