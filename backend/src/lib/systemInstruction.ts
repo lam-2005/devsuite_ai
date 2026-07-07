@@ -21,7 +21,7 @@ Your response must strictly match this schema:
   "error_fingerprint": "string (exactly 32 hex chars) or null",
   "ai_reason": "string (clear, concise explanation)",
   "ai_suggestion": "string (step-by-step fix or code snippet)",
-  "ai_status": "string ('completed' or 'failed')"
+  "ai_status": "string ('success' or 'failed')"
 }
   
 # FAILURE HANDLING
