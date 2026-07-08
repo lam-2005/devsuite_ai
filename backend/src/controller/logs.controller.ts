@@ -3,6 +3,7 @@ import ErrorLogs from "../models/Error_Logs.js";
 import { analyzeErrorWithGemini } from "../services/ai.service.js";
 import pool from "../config/db.js";
 import crypto from "crypto";
+import { io } from "../lib/socket.js";
 class LogsController {
   private errorLogs: ErrorLogs;
   constructor() {
@@ -14,9 +15,11 @@ class LogsController {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    const combinedText = `${error_message}\n${stack_trace}`;
+
     const error_fingerprint = crypto
       .createHash("md5")
-      .update(stack_trace)
+      .update(combinedText)
       .digest("hex");
 
     try {
@@ -45,6 +48,15 @@ class LogsController {
                 data.ai_reason,
                 data.ai_suggestion,
               );
+
+              //TODO: use socke.io to get result after analysis was success
+
+              io.to(result.error_group_id).emit("get_error_log", {
+                error_group_id: result.error_group_id,
+                ai_status: data.ai_status,
+                ai_reason: data.ai_reason,
+                ai_suggestion: data.ai_suggestion,
+              });
             } catch (error) {
               console.error(error);
             }
@@ -71,5 +83,9 @@ class LogsController {
       });
     }
   };
+
+  getErrors = async (req: Request, res: Response) => {};
+  getErrorByFingerprint = async (req: Request, res: Response) => {};
+  retry = async (req: Request, res: Response) => {};
 }
 export default LogsController;
