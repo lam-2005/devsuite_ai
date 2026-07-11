@@ -96,7 +96,22 @@ class LogsController {
       });
     }
   };
-  getErrorByFingerprint = async (req: Request, res: Response) => {};
+  getErrorByFingerprint = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!id || typeof id !== "string") {
+      console.error("id is not correct");
+      return res.status(400).json({ error_message: "id is not correct" });
+    }
+    try {
+      const data = await this.errorLogs.getByFingerprint(id);
+      res.status(200).json({ data });
+    } catch (error: unknown) {
+      res.status(500).json({
+        error: "Internal server error",
+        message: (error as Error).message,
+      });
+    }
+  };
   retry = async (req: Request, res: Response) => {};
 }
 export default LogsController;

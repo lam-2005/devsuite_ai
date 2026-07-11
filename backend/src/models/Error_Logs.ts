@@ -82,5 +82,11 @@ class ErrorLogs {
     const { rows } = await pool.query(query);
     return rows;
   };
+
+  getByFingerprint = async (id: string) => {
+    const query = `SELECT * FROM error_groups WHERE id = $1;`;
+    const { rows } = await pool.query(query, [id]);
+    return rows[0];
+  };
 }
 export default ErrorLogs;
