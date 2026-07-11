@@ -54,5 +54,33 @@ class ErrorLogs {
     const { rows } = await pool.query(query, values);
     return rows[0];
   };
+
+  getAllErrors = async () => {
+    const query = `
+    SELECT 
+      eg.id AS error_group_id,
+      eg.error_count,
+      eg.status AS ai_status,
+      p.id AS project_id,
+      p.name AS project_name,
+      p.environment,
+      el.error_message,
+      eg.updated_at AS last_seen
+    FROM error_groups eg
+    LEFT JOIN (
+        SELECT DISTINCT ON (error_group_id)
+            error_group_id,
+            error_message,
+            created_at,
+            project_id
+        FROM error_logs
+        ORDER BY error_group_id, created_at DESC
+    ) el ON el.error_group_id = eg.id
+    JOIN projects p ON el.project_id = p.id
+    ORDER BY eg.updated_at DESC;`;
+
+    const { rows } = await pool.query(query);
+    return rows;
+  };
 }
 export default ErrorLogs;

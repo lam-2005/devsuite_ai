@@ -4,6 +4,7 @@ import { analyzeErrorWithGemini } from "../services/ai.service.js";
 import pool from "../config/db.js";
 import crypto from "crypto";
 import { io } from "../lib/socket.js";
+import LogsService from "../services/logs.service.js";
 class LogsController {
   private errorLogs: ErrorLogs;
   constructor() {
@@ -34,7 +35,7 @@ class LogsController {
         data: result,
       });
 
-      console.log("⏳ Khởi chạy phân tích Gemini ngầm cho log ID:", result.id);
+      console.log("Khởi chạy phân tích Gemini ngầm cho log ID:", result.id);
       if (result.ai_status === "pending" || result.ai_status === "failed") {
         // 2. Gọi hàm ngầm
         analyzeErrorWithGemini(error_message, stack_trace, "English")
@@ -48,8 +49,6 @@ class LogsController {
                 data.ai_reason,
                 data.ai_suggestion,
               );
-
-              //TODO: use socke.io to get result after analysis was success
 
               io.to(result.error_group_id).emit("get_error_log", {
                 error_group_id: result.error_group_id,
@@ -84,7 +83,19 @@ class LogsController {
     }
   };
 
-  getErrors = async (req: Request, res: Response) => {};
+  getErrors = async (req: Request, res: Response) => {
+    try {
+      const data = await this.errorLogs.getAllErrors();
+      res.status(200).json({
+        data,
+      });
+    } catch (error: unknown) {
+      res.status(500).json({
+        error: "Internal server error",
+        message: (error as Error).message,
+      });
+    }
+  };
   getErrorByFingerprint = async (req: Request, res: Response) => {};
   retry = async (req: Request, res: Response) => {};
 }
