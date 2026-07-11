@@ -10,11 +10,11 @@ class ErrorLogs {
     const groupQuery = `
       insert into error_groups (error_fingerprint) values ($1)
       on conflict (error_fingerprint) do update set error_count = error_groups.error_count + 1, updated_at = now()
-      returning id, status, ai_reason, ai_suggestion;
+      returning id, ai_status, ai_reason, ai_suggestion;
     `;
     const groupResult = await pool.query(groupQuery, [error_fingerprint]);
     const error_group_id = groupResult.rows[0].id;
-    const current_ai_status = groupResult.rows[0].status;
+    const current_ai_status = groupResult.rows[0].ai_status;
     const ai_reason = groupResult.rows[0].ai_reason;
     const ai_suggestion = groupResult.rows[0].ai_suggestion;
 
@@ -46,9 +46,9 @@ class ErrorLogs {
     ai_suggestion: string,
   ) => {
     const query = `
-      update error_groups set status = $1, ai_reason = $2, ai_suggestion = $3, updated_at = now() 
+      update error_groups set ai_status = $1, ai_reason = $2, ai_suggestion = $3, updated_at = now() 
       where id = $4
-      returning id, status, ai_reason, ai_suggestion;
+      returning id, ai_status, ai_reason, ai_suggestion;
     `;
     const values = [ai_status, ai_reason, ai_suggestion, error_group_id];
     const { rows } = await pool.query(query, values);
@@ -60,7 +60,7 @@ class ErrorLogs {
     SELECT 
       eg.id AS error_group_id,
       eg.error_count,
-      eg.status AS ai_status,
+      eg.ai_status,
       p.id AS project_id,
       p.name AS project_name,
       p.environment,
@@ -84,7 +84,23 @@ class ErrorLogs {
   };
 
   getByFingerprint = async (id: string) => {
-    const query = `SELECT * FROM error_groups WHERE id = $1;`;
+    const query = `
+     SELECT *
+    FROM error_groups eg 
+    JOIN (
+        SELECT
+            project_id,
+            error_group_id,
+            error_message,
+            stack_trace
+        FROM error_logs
+        WHERE error_group_id = $1 
+        ORDER BY created_at DESC
+        LIMIT 1
+    ) el ON el.error_group_id = eg.id
+    JOIN projects p ON el.project_id = p.id
+    where eg.id = $1;
+    `;
     const { rows } = await pool.query(query, [id]);
     return rows[0];
   };

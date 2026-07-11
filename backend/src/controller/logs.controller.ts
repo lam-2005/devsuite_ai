@@ -38,40 +38,17 @@ class LogsController {
       console.log("Khởi chạy phân tích Gemini ngầm cho log ID:", result.id);
       if (result.ai_status === "pending" || result.ai_status === "failed") {
         // 2. Gọi hàm ngầm
-        analyzeErrorWithGemini(error_message, stack_trace, "English")
-          .then(async (data) => {
-            console.log("Analyze successfully", data);
-
-            try {
-              await this.errorLogs.updateErrorGroupAI(
-                result.error_group_id,
-                data.ai_status,
-                data.ai_reason,
-                data.ai_suggestion,
-              );
-
-              io.to(result.error_group_id).emit("get_error_log", {
-                error_group_id: result.error_group_id,
-                ai_status: data.ai_status,
-                ai_reason: data.ai_reason,
-                ai_suggestion: data.ai_suggestion,
-              });
-            } catch (error) {
-              console.error(error);
-            }
-          })
-          .catch(async (error) => {
-            console.error("Analyze failed", error.message);
-            const failSql = `
-            UPDATE error_groups
-            SET status = 'failed' 
-            WHERE id = $1
-        `;
-            await pool.query(failSql, [result.error_group_id]);
-            console.log(
-              `Error group ID updated 'failed': ${result.error_group_id}`,
-            );
-          });
+        try {
+          this.handleAiAnalysis(
+            result.error_group_id,
+            error_message,
+            stack_trace,
+          );
+        } catch (error) {
+          console.error(
+            `Error group ID updated 'failed': ${result.error_group_id}`,
+          );
+        }
       } else {
         console.log("Analyze successfully");
       }
@@ -96,11 +73,12 @@ class LogsController {
       });
     }
   };
+
   getErrorByFingerprint = async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!id || typeof id !== "string") {
-      console.error("id is not correct");
-      return res.status(400).json({ error_message: "id is not correct" });
+      console.error("id is incorrect");
+      return res.status(400).json({ error_message: "id is incorrect" });
     }
     try {
       const data = await this.errorLogs.getByFingerprint(id);
@@ -112,6 +90,86 @@ class LogsController {
       });
     }
   };
-  retry = async (req: Request, res: Response) => {};
+
+  retry = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!id || typeof id !== "string") {
+      console.error("Id is incorrect");
+      return res.status(400).json({ error_message: "id is incorrect" });
+    }
+    try {
+      const data = await this.errorLogs.getByFingerprint(id);
+      if (!data) {
+        return res.status(404).json({ error_message: "Error group not found" });
+      }
+      if (data.ai_status === "success") {
+        const error =
+          "This error was previously analyzed successfully and cannot be retried.";
+        console.log(error);
+        return res.status(400).json({ error_message: error });
+      }
+
+      const setPendingSql = `UPDATE error_groups SET ai_status = 'pending' WHERE id = $1;`;
+      await pool.query(setPendingSql, [id]);
+
+      res.status(200).json({ message: "Retry analysis started background" });
+
+      this.handleAiAnalysis(id, data.error_message, data.stack_trace);
+    } catch (error: unknown) {
+      res.status(500).json({
+        error: "Internal server error",
+        message: (error as Error).message,
+      });
+    }
+  };
+
+  private handleAiAnalysis = async (
+    errorGroupId: string,
+    errorMessage: string,
+    stackTrace: string,
+    language: string = "English",
+  ) => {
+    try {
+      // 1. Gọi AI phân tích
+      const aiResult = await analyzeErrorWithGemini(
+        errorMessage,
+        stackTrace,
+        language,
+      );
+      console.log("Analyze successfully", aiResult);
+
+      // 2. Cập nhật kết quả thành công vào DB
+      await this.errorLogs.updateErrorGroupAI(
+        errorGroupId,
+        aiResult.ai_status,
+        aiResult.ai_reason,
+        aiResult.ai_suggestion,
+      );
+
+      // 3. Bắn Realtime qua Socket.io sang Frontend
+      io.to(errorGroupId).emit("get_error_log", {
+        error_group_id: errorGroupId,
+        ai_status: aiResult.ai_status,
+        ai_reason: aiResult.ai_reason,
+        ai_suggestion: aiResult.ai_suggestion,
+      });
+    } catch (error: any) {
+      console.error("Analyze failed", error.message);
+
+      // 4. Lỗi thì UPDATE trường ai_status thành 'failed'
+      const failSql = `
+      UPDATE error_groups 
+      SET ai_status = 'failed' 
+      WHERE id = $1;
+    `;
+      await pool.query(failSql, [errorGroupId]);
+
+      // Bắn tin realtime báo thất bại để UI tắt loading
+      io.to(errorGroupId).emit("get_error_log", {
+        error_group_id: errorGroupId,
+        ai_status: "failed",
+      });
+    }
+  };
 }
 export default LogsController;
