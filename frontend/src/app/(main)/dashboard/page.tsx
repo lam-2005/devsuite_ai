@@ -3,7 +3,7 @@ import TableDashboard from "@/components/TableDashboard";
 
 const Dashboard = () => {
   return (
-    <div className="w-full py-6 px-6 space-y-5">
+    <div className="w-full p-6 space-y-5">
       <div className="flex gap-5 ">
         <div className="flex-1">
           <h2 className="text-2xl font-bold">Error Groups</h2>

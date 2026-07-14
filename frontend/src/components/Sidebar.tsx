@@ -104,7 +104,7 @@ const AppSidebar = () => {
           </SidebarGroup>
 
           {/**/}
-          <SidebarGroup>
+          {/* <SidebarGroup>
             <SidebarGroupLabel>API Testing</SidebarGroupLabel>
             <SidebarMenu>
               {links.testGenerator.map((link) => (
@@ -122,7 +122,7 @@ const AppSidebar = () => {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-          </SidebarGroup>
+          </SidebarGroup> */}
 
           {/**/}
           <SidebarGroup>

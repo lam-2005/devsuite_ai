@@ -91,7 +91,7 @@ const TableDashboard = () => {
             <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="text-muted-foreground">
           {mockApi.map((data) => (
             <TableRow key={data.error_group_id}>
               <TableCell>
@@ -122,7 +122,17 @@ const TableDashboard = () => {
                           : "bg-error"
                     } size-3 rounded-full block`}
                   ></span>
-                  {data.ai_status}
+                  <span
+                    className={`${
+                      data.ai_status === "success"
+                        ? "text-success"
+                        : data.ai_status === "pending"
+                          ? "text-warning"
+                          : "text-error"
+                    } font-semibold`}
+                  >
+                    {data.ai_status}
+                  </span>
                 </div>
               </TableCell>
               <TableCell>{renderTimeAgo(data.last_seen)}</TableCell>
