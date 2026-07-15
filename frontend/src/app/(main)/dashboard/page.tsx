@@ -1,4 +1,3 @@
-import OverviewDashboard from "@/components/OverviewDashboard";
 import TableDashboard from "@/components/TableDashboard";
 
 const Dashboard = () => {
@@ -14,7 +13,7 @@ const Dashboard = () => {
         <div>View mode</div>
         <div>Add new Button</div>
       </div>
-      <OverviewDashboard />
+
       <TableDashboard />
     </div>
   );

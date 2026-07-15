@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"; // Giao diện tối giống VS Code
 import { WandSparkles } from "lucide-react";
-const AiSuggestionCard = () => {
+const AiSuggestionCard = ({ suggestion }: { suggestion: string }) => {
   return (
     <Card className="pt-0 mt-6">
       <CardHeader className="bg-input p-4">
@@ -15,11 +15,7 @@ const AiSuggestionCard = () => {
       </CardHeader>
       <CardContent className="">
         <div className="text-muted-foreground text-base">
-          <Markdown components={MarkdownComponents}>
-            {
-              "### 1. Ensure data is not `null` or `undefined` before mapping\nBefore attempting to call **.map()** on your list of movies, ensure that the data is not `null` or `undefined`. You can do this by adding a conditional check.\n\n```typescript\n// Inside MovieList component\ninterface MovieListProps {\n  movies: any[] | null;\n}\n\nconst MovieList: React.FC<MovieListProps> = ({ movies }) => {\n  if (!movies) {\n    return <p>No movies available.</p>; // Or render a loading state\n  }\n\n  return (\n    <div>\n      {movies.map(movie => (\n        // ... render movie item ...\n      ))}\n    </div>\n  );\n};\n```\n\n### 2. Provide a default empty array\nIf the data source for **movies** can sometimes be `null` or `undefined`, consider providing a default empty array to **.map()** to prevent the error.\n\n```typescript\n// Inside MovieList component\nconst MovieList: React.FC<MovieListProps> = ({ movies }) => {\n  return (\n    <div>\n      {(movies || []).map(movie => (\n        // ... render movie item ...\n      ))}\n    </div>\n  );\n};\n```\n"
-            }
-          </Markdown>
+          <Markdown components={MarkdownComponents}>{suggestion}</Markdown>
         </div>
       </CardContent>
     </Card>

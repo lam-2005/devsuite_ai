@@ -39,7 +39,7 @@ class LogsController {
       if (result.ai_status === "pending" || result.ai_status === "failed") {
         // 2. Gọi hàm ngầm
         try {
-          this.handleAiAnalysis(
+          void this.handleAiAnalysis(
             result.error_group_id,
             error_message,
             stack_trace,
@@ -84,6 +84,8 @@ class LogsController {
       const data = await this.errorLogs.getByFingerprint(id);
       res.status(200).json({ data });
     } catch (error: unknown) {
+      console.log(error);
+
       res.status(500).json({
         error: "Internal server error",
         message: (error as Error).message,
@@ -101,12 +103,6 @@ class LogsController {
       const data = await this.errorLogs.getByFingerprint(id);
       if (!data) {
         return res.status(404).json({ error_message: "Error group not found" });
-      }
-      if (data.ai_status === "success") {
-        const error =
-          "This error was previously analyzed successfully and cannot be retried.";
-        console.log(error);
-        return res.status(400).json({ error_message: error });
       }
 
       const setPendingSql = `UPDATE error_groups SET ai_status = 'pending' WHERE id = $1;`;
@@ -144,6 +140,9 @@ class LogsController {
         aiResult.ai_status,
         aiResult.ai_reason,
         aiResult.ai_suggestion,
+        aiResult.error_location?.file_path,
+        aiResult.error_location?.line,
+        aiResult.error_location?.raw_line_text,
       );
 
       // 3. Bắn Realtime qua Socket.io sang Frontend
@@ -152,6 +151,9 @@ class LogsController {
         ai_status: aiResult.ai_status,
         ai_reason: aiResult.ai_reason,
         ai_suggestion: aiResult.ai_suggestion,
+        file_path: aiResult.error_location.file_path,
+        line: aiResult.error_location.line,
+        raw_line_text: aiResult.error_location.raw_line_text,
       });
     } catch (error: any) {
       console.error("Analyze failed", error.message);

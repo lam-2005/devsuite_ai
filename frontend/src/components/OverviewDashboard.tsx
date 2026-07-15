@@ -2,12 +2,21 @@ import { Bug, CheckCheck, LoaderCircle, X } from "lucide-react";
 import StatCard from "./StatCard";
 import { CardAction } from "./ui/card";
 
-const OverviewDashboard = () => {
+const OverviewDashboard = ({
+  overview,
+}: {
+  overview: {
+    totalErrors: number;
+    success: number;
+    pending: number;
+    failed: number;
+  };
+}) => {
   return (
     <div className="w-full grid grid-cols-4 gap-4">
       <StatCard
         title="Total Errors"
-        value={1283}
+        value={overview.totalErrors}
         icon={Bug}
         bgClass="bg-info/20"
         iconClass="text-info"
@@ -16,7 +25,7 @@ const OverviewDashboard = () => {
 
       <StatCard
         title="Successful Analyses"
-        value={1283}
+        value={overview.success}
         icon={CheckCheck}
         bgClass="bg-success/20"
         iconClass="text-success"
@@ -24,7 +33,7 @@ const OverviewDashboard = () => {
 
       <StatCard
         title="Pending Analyses"
-        value={1283}
+        value={overview.pending}
         icon={LoaderCircle}
         bgClass="bg-warning/20"
         iconClass="text-warning"
@@ -32,7 +41,7 @@ const OverviewDashboard = () => {
 
       <StatCard
         title="Failed Analyses"
-        value={1283}
+        value={overview.failed}
         icon={X}
         bgClass="bg-error/20"
         iconClass="text-error"

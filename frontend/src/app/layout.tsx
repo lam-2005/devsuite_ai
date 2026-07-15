@@ -4,7 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import AppSidebar from "@/components/Sidebar";
 import MenuBar from "@/components/MenuBar";
-
+import Providers from "@/hooks/Providers";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
@@ -42,15 +42,15 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex">
-        <SidebarProvider>
-          <AppSidebar />
-
-          <main className="w-full max-h-screen">
-            <MenuBar />
-
-            {children}
-          </main>
-        </SidebarProvider>
+        <Providers>
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="w-full max-h-screen">
+              <MenuBar />
+              {children}
+            </main>
+          </SidebarProvider>
+        </Providers>
       </body>
     </html>
   );

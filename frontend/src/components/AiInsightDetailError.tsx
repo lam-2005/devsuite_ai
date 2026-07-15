@@ -1,8 +1,9 @@
 import React from "react";
 import AiReasonCard from "./AiReasonCard";
 import AiSuggestionCard from "./AiSuggestionCard";
+import { ErrorDetailInterface } from "@/types/type";
 
-const AiInsightDetailError = () => {
+const AiInsightDetailError = ({ data }: { data: ErrorDetailInterface }) => {
   return (
     <div className="w-3/5">
       {" "}
@@ -11,8 +12,8 @@ const AiInsightDetailError = () => {
         Gemini
       </div>
       <div>
-        <AiReasonCard />
-        <AiSuggestionCard />
+        <AiReasonCard reason={data.ai_reason} />
+        <AiSuggestionCard suggestion={data.ai_suggestion} />
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import {
 } from "./ui/card";
 import { Brain } from "lucide-react";
 
-const AiReasonCard = () => {
+const AiReasonCard = ({ reason }: { reason: string }) => {
   return (
     <Card className="pt-0 mt-6">
       <CardHeader className="bg-input p-4">
@@ -42,9 +42,7 @@ const AiReasonCard = () => {
               ),
             }}
           >
-            {
-              "The error `TypeError: Cannot read properties of null (reading 'map')` indicates that an attempt was made to call the **.map()** method on a value that is `null`. This typically happens when **MovieList** component receives a prop or state variable that is expected to be an array, but is currently `null`."
-            }
+            {reason}
           </Markdown>
         </div>
       </CardContent>

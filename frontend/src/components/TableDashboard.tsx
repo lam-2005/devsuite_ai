@@ -8,65 +8,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { timeAgo } from "@/lib/utils";
-import { RotateCcw } from "lucide-react";
+import { MoreHorizontalIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import PaginationDashboard from "./PaginationDashboard";
-const mockApi = [
-  {
-    error_group_id: "eg_01j2x3456789",
-    error_count: 142,
-    ai_status: "success",
-    project_id: "p_ticknow_prod",
-    project_name: "TickNow",
-    environment: "PROD",
-    error_message: "TypeError: Cannot read properties of null (reading 'map')",
-    last_seen: "2026-07-12T15:50:00.000Z",
-  },
-  {
-    error_group_id: "eg_01j2x9876543",
-    error_count: 15,
-    ai_status: "pending",
-    project_id: "p_devjournal_dev",
-    project_name: "DevJournal",
-    environment: "DEV",
-    error_message:
-      "AxiosError: Request failed with status code 500 at /api/v1/posts",
-    last_seen: "2026-07-12T15:27:30.000Z",
-  },
-  {
-    error_group_id: "eg_01j2x5554443",
-    error_count: 8,
-    ai_status: "failed",
-    project_id: "p_ticknow_prod",
-    project_name: "TickNow",
-    environment: "PROD",
-    error_message: " AuthError: Token expired or invalid signature",
-    last_seen: "2026-07-12T14:30:00.000Z",
-  },
-  {
-    error_group_id: "eg_01j2x5554444",
-    error_count: 8,
-    ai_status: "failed",
-    project_id: "p_ticknow_prod",
-    project_name: "TickNow",
-    environment: "PROD",
-    error_message: " AuthError: Token expired or invalid signature",
-    last_seen: "2026-07-12T14:30:00.000Z",
-  },
-  {
-    error_group_id: "eg_01j2x5554445",
-    error_count: 8,
-    ai_status: "failed",
-    project_id: "p_ticknow_prod",
-    project_name: "TickNow",
-    environment: "PROD",
-    error_message: " AuthError: Token expired or invalid signature",
-    last_seen: "2026-07-12T14:30:00.000Z",
-  },
-];
+import { useAppDispatch, useAppSelector } from "@/hooks/useAppStore";
+import { fetchAllErrors } from "@/lib/features/errorSlice";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import Link from "next/link";
+import OverviewDashboard from "./OverviewDashboard";
+
 const TableDashboard = () => {
+  const { data, loading, error } = useAppSelector((state) => state.errors);
+  const dispatch = useAppDispatch();
   const [tick, setTick] = useState(0);
+
   useEffect(() => {
     const intervalId = setInterval(() => {
       setTick((prev) => prev + 1);
@@ -74,83 +36,131 @@ const TableDashboard = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  const renderTimeAgo = (dateString: string) => {
-    if (!dateString) return "-";
-    return timeAgo(dateString, tick);
+  useEffect(() => {
+    dispatch(fetchAllErrors());
+  }, [dispatch]);
+
+  const overview = {
+    totalErrors: data.length,
+    success: data.filter((d) => d.ai_status === "success").length,
+    pending: data.filter((d) => d.ai_status === "pending").length,
+    failed: data.filter((d) => d.ai_status === "failed").length,
   };
+
   return (
-    <div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Project</TableHead>
-            <TableHead>Error</TableHead>
-            <TableHead>Count</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Last Seen</TableHead>
-            <TableHead>Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody className="text-muted-foreground">
-          {mockApi.map((data) => (
-            <TableRow key={data.error_group_id}>
-              <TableCell>
-                {data.project_name}{" "}
-                <span
-                  className={`${data.environment === "PROD" ? "bg-success/20 text-success" : "bg-info/20 text-info"}  py-1.5 px-2 rounded-full text-xs font-bold`}
-                >
-                  {data.environment === "PROD" ? "Production" : "Development"}
-                </span>
-              </TableCell>
-              <TableCell
-                className="max-w-80  text-red-500"
-                title={data.error_message}
-              >
-                <div className=" line-clamp-2 text-wrap">
-                  {data.error_message}
-                </div>
-              </TableCell>
-              <TableCell>{data.error_count}</TableCell>
-              <TableCell className="capitalize">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`${
-                      data.ai_status === "success"
-                        ? "bg-success"
-                        : data.ai_status === "pending"
-                          ? "relative bg-warning after:size-3 after:absolute after:bg-warning after:animate-ping after:rounded-full after:opacity-75"
-                          : "bg-error"
-                    } size-3 rounded-full block`}
-                  ></span>
-                  <span
-                    className={`${
-                      data.ai_status === "success"
-                        ? "text-success"
-                        : data.ai_status === "pending"
-                          ? "text-warning"
-                          : "text-error"
-                    } font-semibold`}
-                  >
-                    {data.ai_status}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>{renderTimeAgo(data.last_seen)}</TableCell>
-              <TableCell>
-                {data.ai_status !== "pending" ? (
-                  <Button className="flex gap-1 items-center ">
-                    <RotateCcw size={14} /> Retry
-                  </Button>
-                ) : (
-                  "-"
-                )}
-              </TableCell>
+    <>
+      <OverviewDashboard overview={overview} />
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Project</TableHead>
+              <TableHead>Error</TableHead>
+              <TableHead>Count</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Seen</TableHead>
+              <TableHead>Action</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <PaginationDashboard />
-    </div>
+          </TableHeader>
+          <TableBody className="text-muted-foreground">
+            {loading === "pending" ? (
+              <TableRow>
+                <TableCell className="text-center" colSpan={6}>
+                  Loading data...
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell className="text-error text-center" colSpan={6}>
+                  An error occurred while retrieving data.
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.map((item) => (
+                <TableRow key={item.error_group_id}>
+                  <TableCell>
+                    {item.project_name}{" "}
+                    <span
+                      className={`${item.environment === "prod" ? "bg-success/20 text-success" : "bg-info/20 text-info"}  py-1.5 px-2 rounded-full text-xs font-bold`}
+                    >
+                      {item.environment === "prod"
+                        ? "Production"
+                        : "Development"}
+                    </span>
+                  </TableCell>
+                  <TableCell
+                    className="max-w-80  text-red-500"
+                    title={item.error_message}
+                  >
+                    <Link
+                      href={`/dashboard/project/${item.project_id}/group/${item.error_group_id}`}
+                      className=" line-clamp-2 text-wrap"
+                    >
+                      {item.error_message}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{item.error_count}</TableCell>
+                  <TableCell className="capitalize">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`${
+                          item.ai_status === "success"
+                            ? "bg-success"
+                            : item.ai_status === "pending"
+                              ? "relative bg-warning after:size-3 after:absolute after:bg-warning after:animate-ping after:rounded-full after:opacity-75"
+                              : "bg-error"
+                        } size-3 rounded-full block`}
+                      ></span>
+                      <span
+                        className={`${
+                          item.ai_status === "success"
+                            ? "text-success"
+                            : item.ai_status === "pending"
+                              ? "text-warning"
+                              : "text-error"
+                        } font-semibold`}
+                      >
+                        {item.ai_status}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {item.last_seen ? timeAgo(item.last_seen, tick) : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                          >
+                            <MoreHorizontalIcon />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        }
+                      />
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>View</DropdownMenuItem>
+                        {item.ai_status !== "pending" && (
+                          <DropdownMenuItem>Retry</DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive">
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        <PaginationDashboard />
+      </div>
+    </>
   );
 };
 
