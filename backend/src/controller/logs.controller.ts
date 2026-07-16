@@ -62,10 +62,10 @@ class LogsController {
 
   getErrors = async (req: Request, res: Response) => {
     try {
-      const data = await this.errorLogs.getAllErrors();
-      res.status(200).json({
-        data,
-      });
+      const page = Math.max(Number(req.query.page) || 1, 1);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+      const data = await this.errorLogs.getAllErrors(page, limit);
+      res.status(200).json(data);
     } catch (error: unknown) {
       res.status(500).json({
         error: "Internal server error",

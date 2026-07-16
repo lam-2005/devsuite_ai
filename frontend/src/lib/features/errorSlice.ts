@@ -4,10 +4,10 @@ import { ErrorInterface } from "@/types/type";
 
 export const fetchAllErrors = createAsyncThunk(
   "errors/fetchAllStatus",
-  async (_, thunkAPI) => {
+  async ({ page, limit }: { page: number; limit: number }, thunkAPI) => {
     try {
-      const res = await errorAPI.fetchAll();
-      return res.data;
+      const res = await errorAPI.fetchAll(page, limit);
+      return res;
     } catch (error) {
       return thunkAPI.rejectWithValue(error);
     }
@@ -26,14 +26,23 @@ export const fetchOneByFingerprint = createAsyncThunk(
   },
 );
 
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 interface ErrorsState {
   data: ErrorInterface[];
+  pagination: Pagination | null;
   loading: "idle" | "pending";
   error: null | unknown;
 }
 
 const initialState = {
   data: [],
+  pagination: null,
   loading: "idle",
   error: null,
 } satisfies ErrorsState as ErrorsState;
@@ -41,7 +50,12 @@ const initialState = {
 const errorLogSlice = createSlice({
   name: "errors",
   initialState,
-  reducers: {},
+  reducers: {
+    setInitialData: (state, action) => {
+      state.data = action.payload.data;
+      state.pagination = action.payload.pagination;
+    },
+  },
   extraReducers(builder) {
     builder
       .addCase(fetchAllErrors.pending, (state) => {
@@ -50,7 +64,8 @@ const errorLogSlice = createSlice({
       })
       .addCase(fetchAllErrors.fulfilled, (state, action) => {
         state.loading = "idle";
-        state.data = action.payload;
+        state.data = action.payload.data;
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchAllErrors.rejected, (state, action) => {
         state.loading = "idle";
@@ -71,5 +86,5 @@ const errorLogSlice = createSlice({
       });
   },
 });
-
+export const { setInitialData } = errorLogSlice.actions;
 export default errorLogSlice.reducer;

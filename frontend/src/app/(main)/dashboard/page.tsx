@@ -1,6 +1,9 @@
 import TableDashboard from "@/components/TableDashboard";
+import errorAPI from "@/services/error.service";
 
-const Dashboard = () => {
+const Dashboard = async () => {
+  const res = await errorAPI.fetchAll();
+
   return (
     <div className="w-full p-6 space-y-5">
       <div className="flex gap-5 ">
@@ -10,11 +13,10 @@ const Dashboard = () => {
             Manage and review error groups.
           </p>
         </div>
-        <div>View mode</div>
         <div>Add new Button</div>
       </div>
-
-      <TableDashboard />
+      {/* <OverviewDashboard overview={overview} /> */}
+      <TableDashboard initData={res} />
     </div>
   );
 };

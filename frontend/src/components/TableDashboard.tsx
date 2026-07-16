@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import PaginationDashboard from "./PaginationDashboard";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppStore";
-import { fetchAllErrors } from "@/lib/features/errorSlice";
+import { Pagination, setInitialData } from "@/lib/features/errorSlice";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +22,13 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import Link from "next/link";
-import OverviewDashboard from "./OverviewDashboard";
+import { ErrorInterface } from "@/types/type";
 
-const TableDashboard = () => {
+const TableDashboard = ({
+  initData,
+}: {
+  initData: { data: ErrorInterface[]; pagination: Pagination };
+}) => {
   const { data, loading, error } = useAppSelector((state) => state.errors);
   const dispatch = useAppDispatch();
   const [tick, setTick] = useState(0);
@@ -37,22 +41,14 @@ const TableDashboard = () => {
   }, []);
 
   useEffect(() => {
-    dispatch(fetchAllErrors());
-  }, [dispatch]);
-
-  const overview = {
-    totalErrors: data.length,
-    success: data.filter((d) => d.ai_status === "success").length,
-    pending: data.filter((d) => d.ai_status === "pending").length,
-    failed: data.filter((d) => d.ai_status === "failed").length,
-  };
+    dispatch(setInitialData(initData));
+  }, [dispatch, initData]);
 
   return (
     <>
-      <OverviewDashboard overview={overview} />
       <div>
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0">
             <TableRow>
               <TableHead>Project</TableHead>
               <TableHead>Error</TableHead>

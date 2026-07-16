@@ -72,7 +72,9 @@ class ErrorLogs {
     return rows[0];
   };
 
-  getAllErrors = async () => {
+  getAllErrors = async (page = 1, limit = 20) => {
+    const offset = (page - 1) * limit;
+
     const query = `
     SELECT 
       eg.id AS error_group_id,
@@ -94,10 +96,29 @@ class ErrorLogs {
         ORDER BY error_group_id, created_at DESC
     ) el ON el.error_group_id = eg.id
     LEFT JOIN projects p ON el.project_id = p.id
-    ORDER BY el.created_at DESC;`;
+    ORDER BY el.created_at DESC NULLS LAST
+    LIMIT $1 OFFSET $2;`;
 
-    const { rows } = await pool.query(query);
-    return rows;
+    const countQuery = `
+    SELECT COUNT(*)::int AS total
+    FROM error_groups;
+  `;
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      pool.query(query, [limit, offset]),
+      pool.query(countQuery),
+    ]);
+
+    const total = countRows[0].total;
+
+    return {
+      data: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   };
 
   getByFingerprint = async (id: string) => {

@@ -1,9 +1,14 @@
 import apiClient from "@/lib/axios";
 import axios from "axios";
 const errorAPI = {
-  fetchAll: async () => {
+  fetchAll: async (page = 1, limit = 5) => {
     try {
-      const res = await apiClient.get("/logs/errors");
+      const res = await apiClient.get("/logs/errors", {
+        params: {
+          page,
+          limit,
+        },
+      });
       return res.data;
     } catch (error) {
       console.log(error);
