@@ -8,12 +8,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { timeAgo } from "@/lib/utils";
-import { MoreHorizontalIcon } from "lucide-react";
+import { Eye, MoreHorizontalIcon, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import PaginationDashboard from "./PaginationDashboard";
 import { useAppDispatch, useAppSelector } from "@/hooks/useAppStore";
-import { Pagination, setInitialData } from "@/lib/features/errorSlice";
+import {
+  Pagination,
+  setInitialData,
+  updateErrorStatus,
+} from "@/lib/features/errorSlice";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,13 +27,17 @@ import {
 } from "./ui/dropdown-menu";
 import Link from "next/link";
 import { ErrorInterface } from "@/types/type";
+import { useRouter } from "next/navigation";
+import useSocket from "@/hooks/useSocket";
 
 const TableDashboard = ({
   initData,
 }: {
   initData: { data: ErrorInterface[]; pagination: Pagination };
 }) => {
-  const { data, loading, error } = useAppSelector((state) => state.errors);
+  const { list, loading, error } = useAppSelector((state) => state.errors);
+  const { on, off } = useSocket();
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const [tick, setTick] = useState(0);
 
@@ -44,6 +52,23 @@ const TableDashboard = ({
     dispatch(setInitialData(initData));
   }, [dispatch, initData]);
 
+  useEffect(() => {
+    const handleStatusChanged = ({
+      id,
+      ai_status,
+    }: {
+      id: string;
+      ai_status: "pending" | "success" | "failed";
+    }) => {
+      dispatch(updateErrorStatus({ id, ai_status }));
+    };
+
+    on("error_status_changed", handleStatusChanged);
+
+    return () => {
+      off("error_status_changed", handleStatusChanged);
+    };
+  }, [dispatch, on, off]);
   return (
     <>
       <div>
@@ -53,7 +78,7 @@ const TableDashboard = ({
               <TableHead>Project</TableHead>
               <TableHead>Error</TableHead>
               <TableHead>Count</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Analysis status</TableHead>
               <TableHead>Last Seen</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
@@ -72,7 +97,8 @@ const TableDashboard = ({
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((item) => (
+              Array.isArray(list) &&
+              list.map((item) => (
                 <TableRow key={item.error_group_id}>
                   <TableCell>
                     {item.project_name}{" "}
@@ -138,13 +164,24 @@ const TableDashboard = ({
                         }
                       />
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View</DropdownMenuItem>
-                        {item.ai_status !== "pending" && (
-                          <DropdownMenuItem>Retry</DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem>
+                          <button
+                            className="flex items-center gap-2 cursor-pointer w-full"
+                            onClick={() =>
+                              router.push(
+                                `/dashboard/project/${item.project_id}/group/${item.error_group_id}`,
+                              )
+                            }
+                          >
+                            <Eye /> View
+                          </button>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive">
-                          Delete
+                        <DropdownMenuItem
+                          variant="destructive"
+                          className={"cursor-pointer"}
+                        >
+                          <Trash /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

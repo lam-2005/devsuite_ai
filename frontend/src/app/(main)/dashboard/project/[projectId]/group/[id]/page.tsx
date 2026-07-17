@@ -1,11 +1,7 @@
-import AiInsightDetailError from "@/components/AiInsightDetailError";
 import BackToDashboard from "@/components/BackToDashboard";
 import DetailErrorClient from "@/components/DetailErrorClient";
-import HeaderDetailError from "@/components/HeaderDetailError";
-import RawErrorDetailError from "@/components/RawErrorDetailError";
 import errorAPI from "@/services/error.service";
 import { ErrorDetailInterface } from "@/types/type";
-import React from "react";
 
 const DetailErrorPage = async ({
   params,
@@ -23,7 +19,7 @@ const DetailErrorPage = async ({
           error_message={initData.error_message}
         />
       </div>
-      <DetailErrorClient initData={initData} />
+      <DetailErrorClient initData={initData} id={id} />
     </div>
   );
 };

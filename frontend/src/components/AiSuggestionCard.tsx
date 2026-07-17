@@ -1,9 +1,20 @@
 import Markdown, { Components } from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"; // Giao diện tối giống VS Code
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { WandSparkles } from "lucide-react";
-const AiSuggestionCard = ({ suggestion }: { suggestion: string }) => {
+
+interface AiSuggestionCardProps {
+  suggestion?: string;
+  streaming?: boolean;
+}
+
+const AiSuggestionCard = ({
+  suggestion,
+  streaming = false,
+}: AiSuggestionCardProps) => {
+  const hasContent = !!suggestion && suggestion.length > 0;
+
   return (
     <Card className="pt-0 mt-6">
       <CardHeader className="bg-input p-4">
@@ -15,7 +26,26 @@ const AiSuggestionCard = ({ suggestion }: { suggestion: string }) => {
       </CardHeader>
       <CardContent className="">
         <div className="text-muted-foreground text-base">
-          <Markdown components={MarkdownComponents}>{suggestion}</Markdown>
+          {!hasContent && !streaming && (
+            <p className="italic text-sm">Chưa có đề xuất nào.</p>
+          )}
+
+          {!hasContent && streaming && (
+            <p className="italic text-sm animate-pulse">
+              AI đang soạn đề xuất fix...
+            </p>
+          )}
+
+          {hasContent && (
+            <>
+              <Markdown components={MarkdownComponents}>
+                {suggestion}
+              </Markdown>
+              {streaming && (
+                <span className="inline-block w-2 h-4 bg-foreground ml-0.5 align-middle animate-pulse" />
+              )}
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -23,7 +53,6 @@ const AiSuggestionCard = ({ suggestion }: { suggestion: string }) => {
 };
 
 const MarkdownComponents: Components = {
-  // Định nghĩa chuẩn cho thẻ code
   code: ({ className, children, ...props }) => {
     const match = /language-(\w+)/.exec(className || "");
     return match ? (
@@ -46,8 +75,6 @@ const MarkdownComponents: Components = {
       </code>
     );
   },
-
-  // Các thẻ còn lại tự động nhận đúng kiểu dữ liệu (ComponentPropsWithoutRef)
   strong: ({ node, ...props }) => (
     <strong
       className="px-1 py-0.5 rounded font-semibold bg-input font-mono text-xs"

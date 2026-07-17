@@ -33,7 +33,7 @@ export function ErrorTrace({ data }: { data: ErrorDetailInterface }) {
         </CardAction>
       </CardHeader>
       <CardContent className="border-b border-muted-foreground font-mono">
-        <div className="text-error text-base pb-6">
+        <div className="text-error text-sm pb-6">
           <h5>Error</h5>
           <p>{data.error_message}</p>
           <p className="text-muted-foreground ml-6">
@@ -43,7 +43,7 @@ export function ErrorTrace({ data }: { data: ErrorDetailInterface }) {
         </div>
       </CardContent>
       <CardContent className="font-mono">
-        <div className="text-base text-muted-foreground">
+        <div className="text-sm text-muted-foreground">
           <h5>Call Stack</h5>
           <div className="mt-2">
             {logLines.map((line, index) => {

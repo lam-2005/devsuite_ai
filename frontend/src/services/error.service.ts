@@ -43,6 +43,24 @@ const errorAPI = {
       throw new Error("Unknown error");
     }
   },
+
+  retry: async (id: string) => {
+    try {
+      await apiClient.post(`/logs/errors/${id}/retry`);
+    } catch (error) {
+      console.log(error);
+
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.message);
+      }
+
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      throw new Error("Unknown error");
+    }
+  },
 };
 
 export default errorAPI;

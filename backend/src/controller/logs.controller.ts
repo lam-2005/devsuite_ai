@@ -4,7 +4,6 @@ import { analyzeErrorWithGemini } from "../services/ai.service.js";
 import pool from "../config/db.js";
 import crypto from "crypto";
 import { io } from "../lib/socket.js";
-import LogsService from "../services/logs.service.js";
 class LogsController {
   private errorLogs: ErrorLogs;
   constructor() {
@@ -35,6 +34,10 @@ class LogsController {
         data: result,
       });
 
+      io.emit("error_status_changed", {
+        id: result.error_group_id,
+        ai_status: "pending",
+      });
       console.log("Khởi chạy phân tích Gemini ngầm cho log ID:", result.id);
       if (result.ai_status === "pending" || result.ai_status === "failed") {
         // 2. Gọi hàm ngầm
@@ -107,10 +110,19 @@ class LogsController {
 
       const setPendingSql = `UPDATE error_groups SET ai_status = 'pending' WHERE id = $1;`;
       await pool.query(setPendingSql, [id]);
-
+      io.emit("error_status_changed", {
+        id,
+        ai_status: "pending",
+      });
       res.status(200).json({ message: "Retry analysis started background" });
 
-      this.handleAiAnalysis(id, data.error_message, data.stack_trace);
+      this.handleAiAnalysis(
+        id,
+        data.error_message,
+        data.stack_trace,
+        "English",
+        data,
+      );
     } catch (error: unknown) {
       res.status(500).json({
         error: "Internal server error",
@@ -123,18 +135,36 @@ class LogsController {
     errorGroupId: string,
     errorMessage: string,
     stackTrace: string,
-    language: string = "English",
+    language = "English",
+    previousData?: any,
   ) => {
+    let aiResult: any;
     try {
-      // 1. Gọi AI phân tích
-      const aiResult = await analyzeErrorWithGemini(
+      io.to(errorGroupId).emit("ai_start");
+
+      aiResult = await analyzeErrorWithGemini(
         errorMessage,
         stackTrace,
         language,
       );
-      console.log("Analyze successfully", aiResult);
 
-      // 2. Cập nhật kết quả thành công vào DB
+      if (aiResult.ai_status !== "success") {
+        throw new Error(
+          `AI analysis returned non-success status: ${aiResult.ai_status}`,
+        );
+      }
+
+      await this.streamText(
+        errorGroupId,
+        "ai_reason_chunk",
+        aiResult.ai_reason,
+      );
+      await this.streamText(
+        errorGroupId,
+        "ai_suggestion_chunk",
+        aiResult.ai_suggestion,
+      );
+
       await this.errorLogs.updateErrorGroupAI(
         errorGroupId,
         aiResult.ai_status,
@@ -144,34 +174,66 @@ class LogsController {
         aiResult.error_location?.line,
         aiResult.error_location?.raw_line_text,
       );
-
-      // 3. Bắn Realtime qua Socket.io sang Frontend
-      io.to(errorGroupId).emit("get_error_log", {
-        error_group_id: errorGroupId,
+      io.emit("error_status_changed", {
+        id: errorGroupId,
         ai_status: aiResult.ai_status,
-        ai_reason: aiResult.ai_reason,
-        ai_suggestion: aiResult.ai_suggestion,
-        file_path: aiResult.error_location.file_path,
-        line: aiResult.error_location.line,
-        raw_line_text: aiResult.error_location.raw_line_text,
       });
     } catch (error: any) {
-      console.error("Analyze failed", error.message);
+      console.error(error);
 
-      // 4. Lỗi thì UPDATE trường ai_status thành 'failed'
-      const failSql = `
-      UPDATE error_groups 
-      SET ai_status = 'failed' 
-      WHERE id = $1;
-    `;
-      await pool.query(failSql, [errorGroupId]);
+      await pool.query(
+        `UPDATE error_groups SET ai_status='failed' WHERE id=$1`,
+        [errorGroupId],
+      );
 
-      // Bắn tin realtime báo thất bại để UI tắt loading
-      io.to(errorGroupId).emit("get_error_log", {
-        error_group_id: errorGroupId,
+      io.to(errorGroupId).emit("ai_error", {
+        ai_status: "failed",
+        previous_result: previousData
+          ? {
+              ai_reason: previousData.ai_reason,
+              ai_suggestion: previousData.ai_suggestion,
+              file_path: previousData.file_path,
+              line: previousData.line,
+              raw_line_text: previousData.raw_line_text,
+            }
+          : null,
+      });
+      io.emit("error_status_changed", {
+        id: errorGroupId,
         ai_status: "failed",
       });
+      return;
+    }
+    try {
+      io.to(errorGroupId).emit("ai_complete", {
+        ai_status: aiResult.ai_status,
+        file_path: aiResult.error_location?.file_path,
+        line: aiResult.error_location?.line,
+        raw_line_text: aiResult.error_location?.raw_line_text,
+      });
+    } catch (emitError) {
+      console.error(
+        "Emit ai_complete failed, but DB is already correct:",
+        emitError,
+      );
     }
   };
+  private async streamText(
+    roomId: string,
+    event: string,
+    text?: string,
+    chunkSize = 40,
+    delay = 25,
+  ) {
+    if (!text) return;
+
+    for (let i = 0; i < text.length; i += chunkSize) {
+      io.to(roomId).emit(event, {
+        chunk: text.slice(i, i + chunkSize),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
 }
 export default LogsController;

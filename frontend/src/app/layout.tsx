@@ -41,11 +41,11 @@ export default function RootLayout({
         figtree.variable,
       )}
     >
-      <body className="min-h-full flex">
+      <body className="min-h-full flex ">
         <Providers>
           <SidebarProvider>
             <AppSidebar />
-            <main className="w-full max-h-screen">
+            <main className="flex-1 max-h-screen min-w-0 overflow-y-auto">
               <MenuBar />
               {children}
             </main>

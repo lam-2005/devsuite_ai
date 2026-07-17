@@ -2,11 +2,24 @@
 import { Button } from "./ui/button";
 import { ErrorDetailInterface } from "@/types/type";
 import { timeAgo } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { LoaderCircle, RotateCcw } from "lucide-react";
+import { useAppDispatch } from "@/hooks/useAppStore";
+import { retryAnalysis } from "@/lib/features/errorSlice";
 
 const HeaderDetailError = ({ data }: { data: ErrorDetailInterface }) => {
+  const dispatch = useAppDispatch();
   const [tick, setTick] = useState(0);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setTick((prev) => prev + 1);
+    }, 60000);
+    return () => clearInterval(intervalId);
+  }, []);
+  const hancleReAnalyze = () => {
+    dispatch(retryAnalysis(data.error_group_id));
+  };
   return (
     <div className=" flex items-center justify-between border-b border-border p-6">
       <div>
@@ -50,7 +63,21 @@ const HeaderDetailError = ({ data }: { data: ErrorDetailInterface }) => {
           </div>
         </div>
       </div>
-      <Button>Retry</Button>
+      <Button
+        className={"cursor-pointer"}
+        onClick={hancleReAnalyze}
+        disabled={data.ai_status === "pending"}
+      >
+        {data.ai_status === "pending" ? (
+          <>
+            <LoaderCircle className="animate-spin" /> Analyzing...
+          </>
+        ) : (
+          <>
+            <RotateCcw /> Retry AI Analysis
+          </>
+        )}
+      </Button>
     </div>
   );
 };
