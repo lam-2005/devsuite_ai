@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from "@/hooks/useAppStore";
 import {
   Pagination,
   setInitialData,
+  upsertErrorGroup,
   updateErrorStatus,
 } from "@/lib/features/errorSlice";
 import {
@@ -63,10 +64,17 @@ const TableDashboard = ({
       dispatch(updateErrorStatus({ id, ai_status }));
     };
 
+    const handleErrorGroupUpdated = (payload: {
+      group: ErrorInterface;
+      isNewGroup: boolean;
+    }) => dispatch(upsertErrorGroup(payload));
+
     on("error_status_changed", handleStatusChanged);
+    on("error_group_updated", handleErrorGroupUpdated);
 
     return () => {
       off("error_status_changed", handleStatusChanged);
+      off("error_group_updated", handleErrorGroupUpdated);
     };
   }, [dispatch, on, off]);
   return (

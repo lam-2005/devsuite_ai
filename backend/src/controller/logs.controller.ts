@@ -29,11 +29,18 @@ class LogsController {
         stack_trace,
         error_fingerprint,
       );
+      const errorGroup = await this.errorLogs.getErrorGroupSummary(
+        result.error_group_id,
+      );
       res.status(201).json({
         message: "Error log created successfully",
         data: result,
       });
 
+      io.emit("error_group_updated", {
+        group: errorGroup,
+        isNewGroup: result.is_new_group,
+      });
       io.emit("error_status_changed", {
         id: result.error_group_id,
         ai_status: "pending",

@@ -10,7 +10,8 @@ class ErrorLogs {
     const groupQuery = `
       insert into error_groups (error_fingerprint) values ($1)
       on conflict (error_fingerprint) do update set error_count = error_groups.error_count + 1, updated_at = now()
-      returning id, ai_status, ai_reason, ai_suggestion, file_path, line, raw_line_text;
+      returning id, ai_status, ai_reason, ai_suggestion, file_path, line, raw_line_text, error_count,
+        (xmax = 0) as is_new_group;
     `;
     const groupResult = await pool.query(groupQuery, [error_fingerprint]);
     const error_group_id = groupResult.rows[0].id;
@@ -41,8 +42,29 @@ class ErrorLogs {
       file_path,
       line,
       raw_line_text,
+      is_new_group: groupResult.rows[0].is_new_group,
       created_at: rows[0].created_at,
     };
+  };
+
+  getErrorGroupSummary = async (error_group_id: string) => {
+    const query = `
+      SELECT eg.id AS error_group_id, eg.error_count, eg.ai_status,
+        p.id AS project_id, p.name AS project_name, p.environment,
+        el.error_message, el.created_at AS last_seen
+      FROM error_groups eg
+      JOIN LATERAL (
+        SELECT project_id, error_message, created_at
+        FROM error_logs
+        WHERE error_group_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) el ON true
+      JOIN projects p ON p.id = el.project_id
+      WHERE eg.id = $1;
+    `;
+    const { rows } = await pool.query(query, [error_group_id]);
+    return rows[0];
   };
 
   updateErrorGroupAI = async (

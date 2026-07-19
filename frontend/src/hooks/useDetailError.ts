@@ -2,13 +2,14 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import useSocket from "@/hooks/useSocket";
-import { ErrorDetailInterface } from "@/types/type";
+import { ErrorDetailInterface, ErrorInterface } from "@/types/type";
 import {
   aiAnalysisStart,
   aiReasonChunkReceived,
   aiSuggestionChunkReceived,
   aiAnalysisComplete,
   aiAnalysisError,
+  updateDetailFromGroup,
 } from "@/lib/features/errorSlice";
 
 interface AiErrorPayload {
@@ -48,6 +49,8 @@ const useDetailError = (id: string) => {
       >,
     ) => dispatch(aiAnalysisComplete(data));
     const onFailed = (data: AiErrorPayload) => dispatch(aiAnalysisError(data));
+    const onGroupUpdated = (data: { group: ErrorInterface }) =>
+      dispatch(updateDetailFromGroup(data.group));
 
     on<void>("ai_start", onStart);
     on<{ chunk: string }>("ai_reason_chunk", onReasonChunk);
@@ -59,6 +62,7 @@ const useDetailError = (id: string) => {
       >
     >("ai_complete", onComplete);
     on<AiErrorPayload>("ai_error", onFailed);
+    on<{ group: ErrorInterface }>("error_group_updated", onGroupUpdated);
 
     return () => {
       off<void>("ai_start", onStart);
@@ -71,6 +75,7 @@ const useDetailError = (id: string) => {
         >
       >("ai_complete", onComplete);
       off<AiErrorPayload>("ai_error", onFailed);
+      off<{ group: ErrorInterface }>("error_group_updated", onGroupUpdated);
     };
   }, [connected, id, on, off, dispatch]);
 };

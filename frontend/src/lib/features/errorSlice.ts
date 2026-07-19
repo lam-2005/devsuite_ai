@@ -149,6 +149,39 @@ const errorLogSlice = createSlice({
         error.ai_status = action.payload.ai_status;
       }
     },
+    updateDetailFromGroup: (
+      state,
+      action: PayloadAction<
+        Partial<ErrorDetailInterface> & { error_group_id: string }
+      >,
+    ) => {
+      if (state.detail?.error_group_id === action.payload.error_group_id) {
+        Object.assign(state.detail, action.payload);
+      }
+    },
+    upsertErrorGroup: (
+      state,
+      action: PayloadAction<{ group: ErrorInterface; isNewGroup: boolean }>,
+    ) => {
+      const { group, isNewGroup } = action.payload;
+      const existingIndex = state.list.findIndex(
+        (item) => item.error_group_id === group.error_group_id,
+      );
+
+      if (existingIndex >= 0) {
+        state.list[existingIndex] = group;
+      } else if (state.pagination?.page === 1) {
+        state.list.unshift(group);
+        state.list = state.list.slice(0, state.pagination.limit);
+      }
+
+      if (isNewGroup && state.pagination) {
+        state.pagination.total += 1;
+        state.pagination.totalPages = Math.ceil(
+          state.pagination.total / state.pagination.limit,
+        );
+      }
+    },
   },
   extraReducers(builder) {
     builder
@@ -197,6 +230,8 @@ export const {
   aiAnalysisComplete,
   aiAnalysisError,
   updateErrorStatus,
+  updateDetailFromGroup,
+  upsertErrorGroup,
 } = errorLogSlice.actions;
 
 export default errorLogSlice.reducer;
